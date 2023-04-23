@@ -1,0 +1,121 @@
+@page "/add-invoice"
+
+@using System.ComponentModel.DataAnnotations
+
+@using Models
+
+@inject HttpClient _httpClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<EditForm Model="@invoice"  OnValidSubmit="OnSave">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem sm="12">
+            <MudText Typo="Typo.h6" Class="mt-5"> <strong>Add invoice </strong></MudText>
+             <MudCardActions Class='d-flex align-flex-end flex-wrap'>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" Class="ml-auto" OnClick="@Cancel">Back
+                </MudButton>
+            </MudCardActions>
+            <MudCard Class="mt-2" Style="box-shadow:none">
+                <MudCardContent Class="d-flex flex-wrap align-center">
+                    <MudTextField Class="ml-1 mr-1" Margin="Margin.Dense"  Variant="Variant.Outlined" Label="Invoice Number"
+                        @bind-Value="invoice.InvoiceNo" For="@(() => invoice.InvoiceNo)"  Required="true" />
+                    @* <MudDatePicker Class="ml-1 mr-1" Margin="Margin.Dense"  Variant="Variant.Outlined" Label="Date" Editable="true"
+                        @bind-Date="invoice.DateTime" Placeholder="Select Date" For="@(() => invoice.DateTime)"  Required="true"/> *@
+                    <MudTextField  Class="ml-1 mr-1" T="DateTime?" Format="s" Label="DateTimeLocal" InputType="InputType.DateTimeLocal"  Margin="Margin.Dense"  Variant="Variant.Outlined" 
+                         @bind-Value="invoice.DateTime" Placeholder="Select Date" For="@(() => invoice.DateTime)"  />
+
+                    <MudButton OnClick="@(async (e) =>await HandleNewProductDetail())"  Variant="Variant.Filled" Color="Color.Primary"
+                        Class="ml-auto">Add Product</MudButton>
+                </MudCardContent>
+
+                @if (invoice.InvoiceDetails != null)
+                {
+                    @foreach (var invoiceDetail in invoice.InvoiceDetails.Select((item, index) => (item, index)))
+                    {
+                        var num = @invoiceDetail.index + 1;
+                        <MudCard Class="ml-4 mr-4 mt-2 mb-2" Style="box-shadow:none">
+                            <MudText Class="pt-2 ml-4" Align="Align.Left" Typo="Typo.body1">PRODUCT - @num </MudText>
+                            <MudCardContent Class="d-flex flex-wrap  align-center"  Required="true">
+                                <MudTextField T="string"  Margin="Margin.Dense"  Variant="Variant.Outlined" Label="Product name" Class="ml-2 mr-2"
+                            @bind-Value="invoiceDetail.item.ProductName" 
+                            For="@(() => invoiceDetail.item.ProductName)"  Required="true"/>
+                                <MudNumericField Margin="Margin.Dense"  Variant="Variant.Outlined" Label="Product price" Class="ml-2 mr-2"
+                            @bind-Value="invoiceDetail.item.ProductPrice" Min=0.0
+                            For="@(() => invoiceDetail.item.ProductPrice)" Required="true" />
+                                <MudNumericField Margin="Margin.Dense" Class="ml-2 mr-2" Variant="Variant.Outlined" Label="quantity"
+                            @bind-Value="invoiceDetail.item.Quantity" For="@(() => invoiceDetail.item.Quantity)"
+                            Min=1 />
+                            <MudIconButton  OnClick="(() => RemoveProduct(invoiceDetail.index))"  Icon="@Icons.Material.Filled.Delete"
+                                    Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Medium" />
+                            </MudCardContent>
+                        </MudCard>
+
+
+                    }
+                }
+                <MudCardActions>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success" Disabled="@(invoice.InvoiceDetails.Count() == 0)"
+                        Class="ml-auto">Register</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+
+@code {
+    InvoiceDto invoice = new InvoiceDto();
+    InvoiceDetailDto invoiceDetailDto = new InvoiceDetailDto();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    private async Task OnSave()
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/invoice", invoice);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Saved Successfully!", Severity.Success);
+            Navigation.NavigateTo("/invoice-list");
+        }
+        else
+        {
+            Snackbar.Add("Something went wrong. please check your details!", Severity.Error);
+        }   
+
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("invoice-list");
+    }
+
+    private async Task HandleNewProductDetail()
+    {
+        if (invoice.InvoiceNo == null)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "please enter invoice numer ");
+            return;
+        }
+        // open diaog
+        var dialog =  await DialogService.ShowAsync<AddProductDialog>("Add Product");
+        var result = await dialog.Result;
+         if (!result.Cancelled)
+        {
+            Console.WriteLine(result.Data);
+            invoiceDetailDto = (InvoiceDetailDto)(result.Data);
+           invoice.InvoiceDetails.Add(invoiceDetailDto);
+        }
+    }
+    private void RemoveProduct(int index)
+    {
+        invoice.InvoiceDetails.RemoveAt(index);
+    }
+}

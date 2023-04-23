@@ -1,0 +1,41 @@
+@using Models
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="@invoiceDetail" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+            <MudCard>
+                <MudCardContent>
+                    <MudTextField Label="ProductName" HelperText="Product name" Class="mt-3"
+                        Margin="Margin.Dense"  Variant="Variant.Outlined"
+                        @bind-Value="invoiceDetail.ProductName" For="@(() => invoiceDetail.ProductName)"
+                        Required=true />
+                    <MudNumericField Variant="Variant.Outlined" Label="ProductPrice" HelperText="ProductPrice"
+                        Margin="Margin.Dense" 
+                        Class="mt-3" @bind-Value="invoiceDetail.ProductPrice" Min=0.0
+                        For="@(() => invoiceDetail.ProductPrice)" Required=true />
+                    <MudNumericField  Margin="Margin.Dense"  Variant="Variant.Outlined" Label="quantity" HelperText="quantity" Class="mt-3"
+                        @bind-Value="invoiceDetail.Quantity" For="@(() => invoiceDetail.Quantity)" Min=1
+                        Required=true />
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                        Class="ml-auto">Submit
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public InvoiceDetailDto invoiceDetail { get; set; } = new InvoiceDetailDto();
+
+    void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(invoiceDetail));
+    }
+    void Cancel() => MudDialog.Cancel();
+}

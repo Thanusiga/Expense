@@ -1,0 +1,111 @@
+@page "/edit-invoice/{Id}"
+@using Models
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@inject IDialogService DialogService
+
+
+<EditForm Model="@invoice" OnValidSubmit="OnSave">
+    <DataAnnotationsValidator />
+    <MudGrid>
+        <MudItem sm="12">
+             <MudText Typo="Typo.h6" Class="mt-5"> <strong> Edit invoice - @invoice.InvoiceNo</strong></MudText>
+            <MudCardActions Class='d-flex align-center  justify-flex-end flex-wrap'>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" Class="ml-auto" OnClick="@Cancel">Back
+                </MudButton>
+                <MudSpacer></MudSpacer>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success"
+                    Class="ml-auto">Update invoice</MudButton>
+            </MudCardActions>
+
+            <MudCard Class="mt-2 " Style="box-shadow:none">
+                <MudCardContent Class="d-flex flex-wrap align-center">
+                    <MudTextField Margin="Margin.Dense" Class="ml-1 mr-1" Variant="Variant.Outlined" Label="Invoice Number"
+                        @bind-Value="invoice.InvoiceNo" For="@(() => invoice.InvoiceNo)" />
+
+                    <MudDatePicker Margin="Margin.Dense" Class="ml-1 mr-1" Variant="Variant.Outlined" Label="Date" Editable="true"
+                        @bind-Date="invoice.DateTime" Placeholder="Select
+                    Date" For="@(() => invoice.DateTime)" />
+                    <MudButton OnClick="@(async (e) =>await HandleNewProductDetail())"  Variant="Variant.Filled" Color="Color.Primary"
+                        Class="ml-auto">Add Product</MudButton>
+                </MudCardContent>
+
+                @if (invoice.InvoiceDetails != null)
+                {
+
+                    @foreach (var invoiceDetail in invoice.InvoiceDetails.Select((item, index) => (item, index)))
+                    {
+                        var num = @invoiceDetail.index + 1;
+                        <MudCard Class="ml-4 mr-4 mt-2 mb-2" Style="box-shadow:none">
+                            <MudText Class="pt-2 ml-4" Align="Align.Left" Typo="Typo.body1">PRODUCT - @num </MudText>
+                            <MudCardContent Class="d-flex flex-wrap align-center">
+                                <MudIconButton  OnClick="(() => RemoveProduct(invoiceDetail.index))"  Icon="@Icons.Material.Filled.Delete"
+                                    Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Medium" />
+                                <MudTextField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Name" Class="ml-2 mr-2"
+                            @bind-Value="invoiceDetail.item.ProductName"
+                            For="@(() => invoiceDetail.item.ProductName)" />
+                                <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="Price"
+                            Class="ml-2 mr-2" @bind-Value="invoiceDetail.item.ProductPrice" Min=0.0
+                            For="@(() => invoiceDetail.item.ProductPrice)" />
+                                <MudNumericField Margin="Margin.Dense" Variant="Variant.Outlined" Label="quantity"
+                            Class="ml-2 mr-2" @bind-Value="invoiceDetail.item.Quantity"
+                            For="@(() => invoiceDetail.item.Quantity)" Min=1 />
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                }
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+
+    [Parameter]
+    public string Id { get; set; }
+    InvoiceVm invoice = new InvoiceVm();
+    @* InvoiceDto invoice = new InvoiceDto(); *@
+    InvoiceDetailDto invoiceDetailDto = new InvoiceDetailDto();
+
+    protected override async Task OnInitializedAsync()
+    {
+        invoice = await Http.GetFromJsonAsync<InvoiceVm>($"api/invoice/{Id}");
+    }
+    protected async Task OnSave()
+    {
+        var response = await Http.PutAsJsonAsync("api/invoice/" + Id, @invoice);
+        if (response.IsSuccessStatusCode)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Updated Successfully!");
+            NavigationManager.NavigateTo("invoice-list");
+        }
+
+    }
+    void Cancel()
+    {
+            NavigationManager.NavigateTo("invoice-list");
+    }
+    private async Task HandleNewProductDetail()
+    {
+        if (invoice.InvoiceNo == null)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "please enter invoice numer first then add items");
+            return;
+        }
+        // open diaog
+        var dialog =  await DialogService.ShowAsync<AddProductDialog>("Add Product");
+        var result = await dialog.Result;
+         if (!result.Cancelled)
+        {
+            Console.WriteLine(result.Data);
+            invoiceDetailDto = (InvoiceDetailDto)(result.Data);
+           invoice.InvoiceDetails.Add(invoiceDetailDto);
+        }
+    }
+    private void RemoveProduct(int index)
+    {
+        invoice.InvoiceDetails.RemoveAt(index);
+    }
+}
