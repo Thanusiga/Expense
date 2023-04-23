@@ -23,7 +23,7 @@
             <MudCard Class="mt-2 " Style="box-shadow:none">
                 <MudCardContent Class="d-flex flex-wrap align-center">
                     <MudTextField Margin="Margin.Dense" Class="ml-1 mr-1" Variant="Variant.Outlined" Label="Invoice Number"
-                        @bind-Value="invoice.InvoiceNo" For="@(() => invoice.InvoiceNo)" />
+                        @bind-Value="invoice.InvoiceNo" For="@(() => invoice.InvoiceNo)" Disabled/>
 
                     <MudDatePicker Margin="Margin.Dense" Class="ml-1 mr-1" Variant="Variant.Outlined" Label="Date" Editable="true"
                         @bind-Date="invoice.DateTime" Placeholder="Select
